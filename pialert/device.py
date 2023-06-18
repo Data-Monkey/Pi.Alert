@@ -5,11 +5,12 @@
 import subprocess
 
 import conf
-from helper import timeNow
-from scanners.internet import check_IP_format, get_internet_IP
-from logger import mylog, print_log
+from helper import check_ip_format, timeNow
+from scanners.internet import get_internet_ip
+from logger import mylog
 from mac_vendor import query_MAC_vendor
-from scanners.pholusscan import performPholusScan, resolve_device_name_dig, resolve_device_name_pholus
+from scanners.pholusscan import perform_pholus_scan, resolve_device_name_pholus
+from scanners.dig import resolve_device_name_dig
 #-------------------------------------------------------------------------------
 
 
@@ -43,7 +44,7 @@ def save_scanned_devices (db, p_arpscan_devices, p_cycle_interval):
                      cycle) )
 
     # Check Internet connectivity
-    internet_IP = get_internet_IP( conf.DIG_GET_IP_ARG )
+    internet_IP = get_internet_ip( )
         # TESTING - Force IP
         # internet_IP = ""
     if internet_IP != "" :
@@ -66,7 +67,7 @@ def save_scanned_devices (db, p_arpscan_devices, p_cycle_interval):
 
     mylog('debug', ['[Save Devices] Saving this IP into the CurrentScan table:', local_ip])
 
-    if check_IP_format(local_ip) == '':
+    if check_ip_format(local_ip) == '':
         local_ip = '0.0.0.0'
 
     # Check if local mac has been detected with other methods
@@ -380,7 +381,7 @@ def update_devices_names (db):
 
     # perform Pholus scan if (unknown) devices found
     if conf.PHOLUS_ACTIVE and (len(unknownDevices) > 0 or conf.PHOLUS_FORCE):        
-        performPholusScan(db, conf.PHOLUS_TIMEOUT, conf.userSubnets)
+        perform_pholus_scan(db, conf.PHOLUS_TIMEOUT, conf.userSubnets)
 
     # skip checks if no unknown devices
     if len(unknownDevices) == 0 and conf.PHOLUS_FORCE == False:
@@ -401,7 +402,7 @@ def update_devices_names (db):
         newName = -1
         
         # Resolve device name with DiG
-        newName = resolve_device_name_dig (device['dev_MAC'], device['dev_LastIP'])
+        newName = resolve_device_name_dig (device['dev_LastIP'])
         
         # count
         if newName != -1:

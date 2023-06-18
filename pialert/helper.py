@@ -321,3 +321,17 @@ class noti_struc:
         self.json = json
         self.text = text
         self.html = html        
+
+#-------------------------------------------------------------------------------
+def check_ip_format (ip_address):
+    # Check IP format
+    IPv4SEG  = r'(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])'
+    IPv4ADDR = r'(?:(?:' + IPv4SEG + r'\.){3,3}' + IPv4SEG + r')'
+    IP = re.search(IPv4ADDR, ip_address)
+
+    # Return error if not IP
+    if IP is None :
+        return ""
+
+    # Return IP
+    return IP.group(0)

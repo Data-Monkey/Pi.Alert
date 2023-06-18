@@ -2,8 +2,8 @@ import json
 
 
 # pialert modules
-import conf  
-from const import (apiPath, sql_devices_all, sql_nmap_scan_all, sql_pholus_scan_all, sql_events_pending_alert, 
+import conf
+from const import (apiPath, sql_devices_all, sql_nmap_scan_all, sql_pholus_scan_all, sql_events_pending_alert,
                    sql_settings, sql_plugins_events, sql_plugins_history, sql_plugins_objects,sql_language_strings)
 from logger import mylog
 from helper import write_file
@@ -17,15 +17,15 @@ def update_api(db, isNotification = False, updateOnlyDataSources = []):
     mylog('verbose', ['[API] Update API starting'])
     # return
 
-    folder = apiPath 
+    folder = apiPath
 
     # update notifications moved to reporting send_api()
 
     # Save plugins
-    if conf.ENABLE_PLUGINS: 
-        write_file(folder + 'plugins.json'  , json.dumps({"data" : conf.plugins}))  
+    if conf.ENABLE_PLUGINS:
+        write_file(folder + 'plugins.json'  , json.dumps({"data" : conf.plugins}))
 
-    #  prepare database tables we want to expose 
+    #  prepare database tables we want to expose
     dataSourcesSQLs = [
         ["devices", sql_devices_all],
         ["nmap_scan", sql_nmap_scan_all],
@@ -51,7 +51,7 @@ def update_api(db, isNotification = False, updateOnlyDataSources = []):
 
 
 class api_endpoint_class:
-    def __init__(self, db, query, path):        
+    def __init__(self, db, query, path):
 
         global apiEndpoints
         self.db = db
@@ -66,25 +66,25 @@ class api_endpoint_class:
         changed = False
         changedIndex = -1
         index = 0
-        
+
         # search previous endpoint states to check if API needs updating
         for endpoint in apiEndpoints:
-            # match sql and API endpoint path 
+            # match sql and API endpoint path
             if endpoint.query == self.query and endpoint.path == self.path:
-                found = True 
-                if endpoint.hash != self.hash:                    
+                found = True
+                if endpoint.hash != self.hash:
                     changed = True
                     changedIndex = index
 
             index = index + 1
-        
+
         # cehck if API endpoints have changed or if it's a new one
         if not found or changed:
 
             mylog('verbose', [f'[API] Updating {self.fileName} file in /front/api'])
 
-            write_file(self.path, json.dumps(self.jsonData)) 
-            
+            write_file(self.path, json.dumps(self.jsonData))
+
             if not found:
                 apiEndpoints.append(self)
 
@@ -93,4 +93,4 @@ class api_endpoint_class:
                 apiEndpoints[changedIndex].hash = self.hash
             else:
                 mylog('info', [f'[API] ERROR Updating {self.fileName}'])
-            
+

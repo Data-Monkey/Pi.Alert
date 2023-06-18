@@ -2,7 +2,7 @@
 #
 #-------------------------------------------------------------------------------
 #  Pi.Alert  v2.70  /  2021-02-01
-#  Open Source Network Guard / WIFI & LAN intrusion detector 
+#  Open Source Network Guard / WIFI & LAN intrusion detector
 #
 #  pialert.py - Back module. Network scanner
 #-------------------------------------------------------------------------------
@@ -31,12 +31,12 @@ from initialise import importConfigs
 from mac_vendor import update_devices_MAC_vendors
 from database import DB, get_all_devices
 from reporting import check_and_run_event, send_notifications
-from plugin import run_plugin_scripts 
+from plugin import run_plugin_scripts
 
 # different scanners
-from scanners.pholusscan import performPholusScan
-from scanners.nmapscan import performNmapScan
-from scanners.internet import check_internet_IP
+from scanners.pholusscan import perform_pholus_scan
+from scanners.nmapscan import perform_nmap_scan
+from scanners.internet import check_internet_ip
 
 
 
@@ -50,12 +50,12 @@ main structure of Pi Alert
 
     Initialise All
     start Loop forever
-        initialise loop 
+        initialise loop
             (re)import config
             (re)import plugin config
         run plugins (once)
         run frontend events
-        update API 
+        update API
         run scans
             run plugins (scheduled)
             check internet IP
@@ -80,11 +80,11 @@ def main ():
     conf.cycle = ""
     conf.check_report = [1, "internet_IP", "update_vendors_silent"]
     conf.plugins_once_run = False
-    
+
     pialert_start_time = timeNow()
 
 
-    # to be deleted if not used 
+    # to be deleted if not used
     conf.log_timestamp = conf.time_started
     #cron_instance = Cron()
 
@@ -92,17 +92,17 @@ def main ():
     startTime = conf.time_started
     now_minus_24h = conf.time_started - datetime.timedelta(hours = 24)
 
-    # set these times to the past to force the first run 
+    # set these times to the past to force the first run
     last_network_scan = now_minus_24h
     last_internet_IP_scan = now_minus_24h
     last_scan_run = now_minus_24h
     last_cleanup = now_minus_24h
     last_update_vendors = conf.time_started - datetime.timedelta(days = 6) # update vendors 24h after first run and then once a week
-    last_version_check = now_minus_24h  
+    last_version_check = now_minus_24h
 
     # indicates, if a new version is available
     conf.newVersionAvailable = False
-    
+
     # check file permissions and fix if required
     filePermissions()
 
@@ -117,7 +117,7 @@ def main ():
 
 
     #===============================================================================
-    # This is the main loop of Pi.Alert 
+    # This is the main loop of Pi.Alert
     #===============================================================================
     while True:
 
@@ -126,7 +126,7 @@ def main ():
         loop_start_time = timeNow()
         mylog('debug', '[MAIN] Starting loop')
 
-        # re-load user configuration and plugins   
+        # re-load user configuration and plugins
         importConfigs(db)
 
         # check if new version is available / only check once an hour
@@ -136,15 +136,15 @@ def main ():
 
         # Handle plugins executed ONCE
         if conf.ENABLE_PLUGINS and conf.plugins_once_run == False:
-            run_plugin_scripts(db, 'once')  
+            run_plugin_scripts(db, 'once')
             conf.plugins_once_run = True
 
         # check if there is a front end initiated event which needs to be executed
         check_and_run_event(db)
 
-        # Update API endpoints              
+        # Update API endpoints
         update_api(db)
-        
+
         # proceed if 1 minute passed
         if last_scan_run + datetime.timedelta(minutes=1) < loop_start_time :
 
@@ -152,30 +152,30 @@ def main ():
             last_scan_run = time_started
 
             # Header
-            updateState(db,"Process: Start")      
+            updateState(db,"Process: Start")
 
             # Timestamp
             startTime = time_started
-            startTime = startTime.replace (microsecond=0) 
+            startTime = startTime.replace (microsecond=0)
 
             # Check if any plugins need to run on schedule
             if conf.ENABLE_PLUGINS:
-                run_plugin_scripts(db,'schedule') 
+                run_plugin_scripts(db,'schedule')
 
             # determine run/scan type based on passed time
             # --------------------------------------------
 
             # check for changes in Internet IP
             if last_internet_IP_scan + datetime.timedelta(minutes=3) < time_started:
-                conf.cycle = 'internet_IP'                
+                conf.cycle = 'internet_IP'
                 last_internet_IP_scan = time_started
-                check_internet_IP(db)
+                check_internet_ip(db)
 
             # Update vendors once a week
             if last_update_vendors + datetime.timedelta(days = 7) < time_started:
                 last_update_vendors = time_started
                 conf.cycle = 'update_vendors'
-                mylog('verbose', ['[MAIN] cycle:',conf.cycle])                  
+                mylog('verbose', ['[MAIN] cycle:',conf.cycle])
                 update_devices_MAC_vendors(db)
 
             # Execute scheduled or one-off Pholus scan if enabled and run conditions fulfilled
@@ -192,12 +192,12 @@ def main ():
 
                 # run if overdue scheduled time
                 if conf.PHOLUS_RUN == "schedule":
-                    run = pholusSchedule.runScheduleCheck()                    
+                    run = pholusSchedule.runScheduleCheck()
 
                 if run:
                     pholusSchedule.last_run = datetime.datetime.now(conf.tz).replace(microsecond=0)
-                    performPholusScan(db, conf.PHOLUS_RUN_TIMEOUT, conf.userSubnets)
-            
+                    perform_pholus_scan(db, conf.PHOLUS_RUN_TIMEOUT, conf.userSubnets)
+
             # Execute scheduled or one-off Nmap scan if enabled and run conditions fulfilled
             if conf.NMAP_RUN == "schedule" or conf.NMAP_RUN == "once":
 
@@ -210,12 +210,12 @@ def main ():
 
                 # run if overdue scheduled time
                 if conf.NMAP_RUN == "schedule":
-                    run = nmapSchedule.runScheduleCheck()                    
+                    run = nmapSchedule.runScheduleCheck()
 
                 if run:
                     nmapSchedule.last_run = timeNow()
-                    performNmapScan(db, get_all_devices(db))
-            
+                    perform_nmap_scan(db, get_all_devices(db))
+
             # Perform a network scan via arp-scan or pihole
             if last_network_scan + datetime.timedelta(minutes=conf.SCAN_CYCLE_MINUTES) < time_started:
                 last_network_scan = time_started
@@ -223,10 +223,10 @@ def main ():
                 mylog('verbose', ['[MAIN] cycle:',conf.cycle])
                 updateState(db,"Scan: Network")
 
-                # scan_network() 
+                # scan_network()
 
                 #  DEBUG start ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                # Start scan_network as a process                
+                # Start scan_network as a process
 
                 p = multiprocessing.Process(target=scan_network(db))
                 p.start()
@@ -254,14 +254,14 @@ def main ():
             # process all the scanned data into new devices
             mylog('debug', "[MAIN] start processig scan results")
             process_scan (db, conf.arpscan_devices )
-            
-            # Reporting   
+
+            # Reporting
             if conf.cycle in conf.check_report:
                 # Check if new devices found
                 sql.execute (sql_new_devices)
                 newDevices = sql.fetchall()
                 db.commitDB()
-                
+
                 #  new devices were found
                 if len(newDevices) > 0:
                     #  run all plugins registered to be run when new devices are found
@@ -270,7 +270,7 @@ def main ():
 
                     #  Scan newly found devices with Nmap if enabled
                     if conf.NMAP_ACTIVE and len(newDevices) > 0:
-                        performNmapScan( db, newDevices)
+                        perform_nmap_scan( db, newDevices)
 
                 # send all configured notifications
                 send_notifications(db)
@@ -278,13 +278,13 @@ def main ():
             # clean up the DB once a day
             if last_cleanup + datetime.timedelta(hours = 24) < time_started:
                 last_cleanup = time_started
-                conf.cycle = 'cleanup'  
+                conf.cycle = 'cleanup'
                 mylog('verbose', ['[MAIN] cycle:',conf.cycle])
-                db.cleanup_database(startTime, conf.DAYS_TO_KEEP_EVENTS, conf.PHOLUS_DAYS_DATA)   
+                db.cleanup_database(startTime, conf.DAYS_TO_KEEP_EVENTS, conf.PHOLUS_DAYS_DATA)
 
             # Commit SQL
-            db.commitDB()          
-            
+            db.commitDB()
+
             # Final message
             if conf.cycle != "":
                 action = str(conf.cycle)
@@ -293,17 +293,17 @@ def main ():
                 mylog('verbose', ['[MAIN] Last action: ', action])
                 conf.cycle = ""
                 mylog('verbose', ['[MAIN] cycle:',conf.cycle])
-            
+
             # Footer
             updateState(db,"Process: Wait")
-            mylog('verbose', ['[MAIN] Process: Wait'])            
+            mylog('verbose', ['[MAIN] Process: Wait'])
         else:
             # do something
-            conf.cycle = "" 
+            conf.cycle = ""
             mylog('verbose', ['[MAIN] waiting to start next loop'])
 
-        #loop     
-        time.sleep(5) # wait for N seconds      
+        #loop
+        time.sleep(5) # wait for N seconds
 
 
 #===============================================================================
@@ -311,4 +311,4 @@ def main ():
 #===============================================================================
 if __name__ == '__main__':
     mylog('debug', ['[__main__] Welcome to Pi.Alert'])
-    sys.exit(main())       
+    sys.exit(main())

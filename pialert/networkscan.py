@@ -2,7 +2,7 @@
 
 import conf
 from scanners.arpscan import execute_arpscan
-from scanners.pihole import copy_pihole_network, read_DHCP_leases
+from scanners.pihole import copy_pihole_network, read_pihole_dhcp_leases
 from database import insertOnlineHistory
 from device import create_new_devices, print_scan_stats, save_scanned_devices, update_devices_data_from_scan, update_devices_names
 from helper import timeNow
@@ -52,7 +52,7 @@ def scan_network (db):
     # DHCP Leases method    
     if conf.DHCP_ACTIVE :        
         mylog('verbose','[Network Scan] DHCP Leases start')        
-        read_DHCP_leases (db) 
+        read_pihole_dhcp_leases (db) 
         db.commitDB()
 
 
